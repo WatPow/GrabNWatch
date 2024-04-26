@@ -38,4 +38,4 @@ Voici quelques exemples d'utilisation de GrabNWatch :
 [@N04H2601](https://github.com/N04H2601) pour le GUI
 
 ## Licence
-GrabNWatch est distribué sous la licence MIT, ce qui permet une grande flexibilité pour l'utilisation et la distribution du logiciel. Pour plus de détails, consultez le fichier LICENSE inclus dans le dépôt GitHub.
+GrabNWatch est distribué sous la licence MIT.
