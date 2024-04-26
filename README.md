@@ -34,5 +34,8 @@ Voici quelques exemples d'utilisation de GrabNWatch :
 - Utiliser la barre de recherche pour filtrer et trouver des VODs spécifiques.
 - Sélectionner une VOD dans la liste et cliquer sur "Télécharger la VOD sélectionnée" pour commencer le téléchargement.
 
+### Remerciements :
+@N04H2601 pour le GUI
+
 ## Licence
 GrabNWatch est distribué sous la licence MIT, ce qui permet une grande flexibilité pour l'utilisation et la distribution du logiciel. Pour plus de détails, consultez le fichier LICENSE inclus dans le dépôt GitHub.
