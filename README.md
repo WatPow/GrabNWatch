@@ -32,7 +32,7 @@ Voici quelques exemples d'utilisation de GrabNWatch :
 
 - Lancer l'application et entrer l'URL M3U dans l'onglet de configuration pour commencer à charger les contenus disponibles.
   ``
-  Exemple : http://domain.fun:80/playlist/username/password/m3u_plus?output=hls
+  Exemple : http://domain.com:80/playlist/username/password/m3u_plus?output=hls
   ``
 - Utiliser la barre de recherche pour filtrer et trouver des VODs spécifiques.
 - Sélectionner une VOD dans la liste et cliquer sur "Télécharger la VOD sélectionnée" pour commencer le téléchargement.
