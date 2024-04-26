@@ -35,7 +35,7 @@ Voici comment utiliser l'application **GrabNWatch** :
 - **Téléchargement :** Sélectionnez une VOD dans la liste et cliquez sur "Télécharger la VOD sélectionnée" pour lancer le téléchargement.
 
 ## 🤝 Remerciements
-[@N04H2601](https://github.com/N04H2601) pour le GUI
+[N04H2601](https://github.com/N04H2601) pour le GUI
 
 
 ## 📄 Licence
