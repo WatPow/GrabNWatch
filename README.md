@@ -24,7 +24,7 @@ Pour installer GrabNWatch, suivez ces étapes :
    ```
 5. Pour construire une version exécutable de l'application, utilisez PyInstaller :
    ```
-   pyinstaller --onefile --windowed --add-data "icon.ico;." main.py
+   pyinstaller --onefile --windowed --add-data "icon.ico;." --name GrabNWatch main.py
    ```
 
 ## Exemples d'utilisation
