@@ -2,7 +2,6 @@ import sys
 import requests
 import re
 import os
-import time
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
@@ -27,7 +26,15 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def save_config(config):
-    # Save configuration to a JSON file
+    """
+    Save configuration to a JSON file.
+    
+    Parameters:
+        config (dict): Configuration dictionary to be saved.
+        
+    Raises:
+        Exception: If saving the configuration fails.
+    """
     try:
         app_name = "GrabNWatch"
         appdata_path = os.getenv("APPDATA")
@@ -44,7 +51,15 @@ def save_config(config):
         raise
 
 def load_config():
-    # Load configuration from a JSON file
+    """
+    Load configuration from a JSON file.
+    
+    Returns:
+        dict: The loaded configuration dictionary.
+        
+    Raises:
+        Exception: If loading the configuration fails.
+    """
     try:
         app_name = "GrabNWatch"
         appdata_path = os.getenv("APPDATA")
@@ -63,19 +78,35 @@ def load_config():
         raise
 
 class DownloadThread(QThread):
-    # Signals to communicate with the GUI thread
+    """
+    A thread to handle the download of video on demand (VOD) files.
+    
+    Attributes:
+        progress (pyqtSignal): Signal to update download progress.
+        finished (pyqtSignal): Signal to indicate download completion.
+        error (pyqtSignal): Signal to indicate an error with the download.
+    """
     progress = pyqtSignal(int)
     finished = pyqtSignal()
     error = pyqtSignal(str)
 
     def __init__(self, name, vod_url):
+        """
+        Initialize the download thread with the specified VOD name and URL.
+        
+        Parameters:
+            name (str): The name of the VOD.
+            vod_url (str): The URL from which to download the VOD.
+        """
         super().__init__()
         self.name = name
         self.vod_url = vod_url
         self.is_running = True
 
     def run(self):
-        # Download a VOD and save it to a file
+        """
+        Run the download process.
+        """
         try:
             download_dir = "downloads"
             os.makedirs(download_dir, exist_ok=True)
@@ -84,7 +115,6 @@ class DownloadThread(QThread):
             response = requests.get(self.vod_url, stream=True, timeout=10)
             total_size_in_bytes = int(response.headers.get("content-length", 0))
             downloaded = 0
-            start_time = time.time()
             with open(file_name, "wb") as file:
                 for data in response.iter_content(1024):
                     if not self.is_running:
@@ -103,12 +133,20 @@ class DownloadThread(QThread):
             logging.error(f"Download failed: {e}")
 
     def stop(self):
-        # Stop the download
+        """
+        Stop the download process.
+        """
         self.is_running = False
 
 
 class App(QMainWindow):
+    """
+    Main application window for the GrabNWatch application.
+    """
     def __init__(self):
+        """
+        Initialize the application window and load the configuration.
+        """
         super().__init__()
         self.config = load_config()  # Load configuration
         self.m3u_url = self.config.get("m3u_url", "")
@@ -130,11 +168,15 @@ class App(QMainWindow):
         self.show_startup_message()
 
     def load_m3u_url_into_ui(self):
-        # Update the QLineEdit with the loaded URL
+        """
+        Update the QLineEdit with the loaded M3U URL.
+        """
         self.m3u_box.setText(self.config.get("m3u_url", ""))
 
     def save_m3u_url(self):
-        # Save the M3U URL from the QLineEdit to the configuration
+        """
+        Save the M3U URL from the QLineEdit to the configuration.
+        """
         self.m3u_url = self.m3u_box.text()
         self.config["m3u_url"] = self.m3u_url
         save_config(self.config)
@@ -142,7 +184,9 @@ class App(QMainWindow):
         self.load_m3u_content()
 
     def show_startup_message(self):
-        # Show a startup message about IPTV stream limitations
+        """
+        Show a startup message about IPTV stream limitations.
+        """
         QMessageBox.information(
             self,
             "Attention",
@@ -150,7 +194,9 @@ class App(QMainWindow):
         )
 
     def initUI(self):
-        # Initialize the main UI components for the download tab
+        """
+        Initialize the main UI components for the download tab.
+        """
         layout = QVBoxLayout()
         self.search_label = QLabel("Entrez un terme de recherche pour les VODs:")
         self.search_box = QLineEdit()
@@ -167,7 +213,9 @@ class App(QMainWindow):
         self.download_button.clicked.connect(self.download_selected_vod)
 
     def initConfigUI(self):
-        # Initialize the configuration UI components
+        """
+        Initialize the configuration UI components.
+        """
         layout = QVBoxLayout()
         m3u_layout = QHBoxLayout()
         self.m3u_label = QLabel("M3U URL:")
@@ -181,12 +229,16 @@ class App(QMainWindow):
         self.m3u_button.clicked.connect(self.save_m3u_url)
 
     def try_load_m3u_content(self):
-        # Attempt to load M3U content if the URL starts with "http"
+        """
+        Attempt to load M3U content if the URL starts with "http".
+        """
         if self.m3u_url.startswith("http"):
             self.load_m3u_content()
 
     def load_m3u_content(self):
-        # Load M3U content from the configured URL
+        """
+        Load M3U content from the configured URL.
+        """
         if not self.m3u_url.startswith("http"):
             QMessageBox.warning(
                 self, "Configuration requise", "Veuillez configurer une URL M3U valide."
@@ -221,7 +273,9 @@ class App(QMainWindow):
             QMessageBox.critical(self, "Network Error", str(e))
 
     def search_vods(self):
-        # Search for VODs matching the entered search terms
+        """
+        Search for VODs matching the entered search terms.
+        """
         if not self.entries:
             QMessageBox.warning(
                 self, "Error", "No data loaded. Please load or refresh the M3U content."
@@ -245,7 +299,9 @@ class App(QMainWindow):
             )
 
     def download_selected_vod(self):
-        # Start the download of the selected VOD
+        """
+        Start the download of the selected VOD.
+        """
         selected_item = self.list_widget.currentItem()
         if selected_item:
             name = selected_item.text()
@@ -254,7 +310,9 @@ class App(QMainWindow):
                 self.start_download(name, url)
 
     def start_download(self, name, vod_url):
-        # Setup and start the download thread
+        """
+        Setup and start the download thread.
+        """
         self.search_button.setEnabled(False)
         self.download_button.setEnabled(False)
         self.m3u_button.setEnabled(False)
@@ -268,31 +326,42 @@ class App(QMainWindow):
         self.download_thread.start()
 
     def cancel_download(self):
-        # Cancel the ongoing download
+        """
+        Cancel the ongoing download.
+        """
         if self.download_thread.isRunning():
             self.download_thread.stop()
         self.progress_dialog.close()
 
     def download_finished(self):
-        # Handle the completion of a download
+        """
+        Handle the completion of a download.
+        """
         self.reset_buttons()
         QMessageBox.information(
             self, "Download Complete", "The VOD has been downloaded."
         )
 
     def download_error(self, message):
-        # Handle errors that occurred during the download
+        """
+        Handle errors that occurred during the download.
+        """
         self.reset_buttons()
         QMessageBox.critical(self, "Download Error", message)
 
     def reset_buttons(self):
-        # Re-enable buttons after a download is completed or canceled
+        """
+        Re-enable buttons after a download is completed or canceled.
+        """
         self.search_button.setEnabled(True)
         self.download_button.setEnabled(True)
         self.m3u_button.setEnabled(True)
 
 
 def main():
+    """
+    Main function to start the application.
+    """
     app = QApplication(sys.argv)
     ex = App()
     ex.show()
