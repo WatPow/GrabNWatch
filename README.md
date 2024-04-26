@@ -39,4 +39,4 @@ Voici comment utiliser l'application **GrabNWatch** :
 
 
 ## 📄 Licence
-**GrabNWatch** est fièrement distribué sous la licence MIT, offrant une grande flexibilité d'utilisation et de distribution. Pour plus de détails, veuillez consulter le fichier LICENSE inclus dans le dépôt GitHub.
+**GrabNWatch** est distribué sous la licence MIT.
