@@ -11,6 +11,10 @@ class QueueTab(QWidget):
         super().__init__(parent)
         self.parent = parent
         self.init_ui()
+        # Désactiver les boutons par défaut
+        self.pause_button.setEnabled(False)
+        self.resume_button.setEnabled(False)
+        self.cancel_button.setEnabled(False)
 
     def init_ui(self):
         """Initialiser l'interface de l'onglet de la file d'attente"""
@@ -59,6 +63,9 @@ class QueueTab(QWidget):
         self.pause_button.clicked.connect(self.pause_selected_download)
         self.resume_button.clicked.connect(self.resume_selected_download)
         
+        # Ajouter la connexion pour la sélection d'item
+        self.active_list.itemSelectionChanged.connect(self.update_buttons_state)
+        
         # Connexion des signaux du gestionnaire de téléchargements
         self.parent.download_manager.download_progress.connect(self.update_download_progress)
         self.parent.download_manager.download_finished.connect(self.on_download_finished)
@@ -67,6 +74,20 @@ class QueueTab(QWidget):
         self.parent.download_manager.download_finished.connect(
             lambda: self.parent.stats_tab.update_stats_display()
         )
+
+    def update_buttons_state(self):
+        """Mettre à jour l'état des boutons en fonction de la sélection et de l'état du téléchargement"""
+        selected_item = self.active_list.currentItem()
+        if selected_item:
+            self.cancel_button.setEnabled(True)
+            full_text = selected_item.text()
+            is_paused = "En pause" in full_text
+            self.pause_button.setEnabled(not is_paused)
+            self.resume_button.setEnabled(is_paused)
+        else:
+            self.pause_button.setEnabled(False)
+            self.resume_button.setEnabled(False)
+            self.cancel_button.setEnabled(False)
 
     def update_queue_display(self):
         """Mettre à jour l'affichage de la file d'attente"""
@@ -92,6 +113,9 @@ class QueueTab(QWidget):
             self.history_list.addItem(
                 f"{name} - {status} - {time.strftime('%H:%M:%S', time.localtime(timestamp))}"
             )
+        
+        # Mettre à jour l'état des boutons
+        self.update_buttons_state()
 
     def update_download_progress(self, name, progress):
         """Mettre à jour la progression du téléchargement"""
@@ -118,19 +142,34 @@ class QueueTab(QWidget):
         """Annuler le téléchargement sélectionné"""
         selected_item = self.active_list.currentItem()
         if selected_item:
-            name = selected_item.text().split(" - ")[0]
-            self.parent.download_manager.cancel_download(name)
+            # Récupérer le nom complet jusqu'au statut
+            full_text = selected_item.text()
+            # Trouver le dernier " - " pour séparer le nom du statut
+            last_separator_index = full_text.rfind(" - ")
+            if last_separator_index != -1:
+                name = full_text[:last_separator_index]
+                self.parent.download_manager.cancel_download(name)
 
     def pause_selected_download(self):
         """Mettre en pause le téléchargement sélectionné"""
         selected_item = self.active_list.currentItem()
         if selected_item:
-            name = selected_item.text().split(" - ")[0]
-            self.parent.download_manager.pause_download(name)
+            # Récupérer le nom complet jusqu'au statut
+            full_text = selected_item.text()
+            # Trouver le dernier " - " pour séparer le nom du statut
+            last_separator_index = full_text.rfind(" - ")
+            if last_separator_index != -1:
+                name = full_text[:last_separator_index]
+                self.parent.download_manager.pause_download(name)
 
     def resume_selected_download(self):
         """Reprendre le téléchargement sélectionné"""
         selected_item = self.active_list.currentItem()
         if selected_item:
-            name = selected_item.text().split(" - ")[0]
-            self.parent.download_manager.resume_download(name) 
+            # Récupérer le nom complet jusqu'au statut
+            full_text = selected_item.text()
+            # Trouver le dernier " - " pour séparer le nom du statut
+            last_separator_index = full_text.rfind(" - ")
+            if last_separator_index != -1:
+                name = full_text[:last_separator_index]
+                self.parent.download_manager.resume_download(name) 
