@@ -20,6 +20,9 @@ def build():
         '--clean',                        # Nettoyer avant la construction
         '--noconfirm',                    # Ne pas demander de confirmation
         '--paths=.',                      # Ajouter le répertoire courant au PYTHONPATH
+        '--uac-admin',                    # Demander les droits admin explicitement
+        '--disable-windowed-traceback',   # Désactiver le traceback en mode fenêtré
+        '--version-file=version.txt',     # Ajouter des informations de version
     ])
 
 if __name__ == "__main__":
