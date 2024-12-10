@@ -1,34 +1,40 @@
-# GrabNWatch
+# GrabNWatch 📺
 
-GrabNWatch est une application de bureau permettant de télécharger des contenus VOD à partir d'une liste M3U.
+GrabNWatch est une application desktop qui permet de télécharger facilement des vidéos depuis diverses plateformes et de les organiser dans des playlists M3U.
 
-## Fonctionnalités
+![Interface principale](docs/images/main_interface.png)
 
-- Chargement de playlists M3U
-- Recherche et filtrage des VODs par catégorie
-- Téléchargement avec gestion de la file d'attente
-- Contrôle de la bande passante
-- Pause/Reprise des téléchargements
-- Statistiques de téléchargement
-- Mode sombre
-- Configuration personnalisable
+## ✨ Fonctionnalités
 
-## Installation
+- 🎥 Téléchargement de vidéos depuis plusieurs plateformes
+- 📋 Gestion intégrée de la file d'attente
+- 📝 Création automatique de playlists M3U
+- ⚙️ Configuration personnalisable
+- 📊 Statistiques de téléchargement
 
-1. Clonez le dépôt :
-```bash
-git clone https://github.com/WatPow/GrabNWatch.git
-cd GrabNWatch
-```
+## 📸 Captures d'écran
 
-2. Créer un environnement virtuel (recommandé) :
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-```
+### Téléchargement et file d'attente
+![Interface de téléchargement](docs/images/download_queue_tab.png)
+*Interface principale avec la liste des vidéos et la file d'attente intégrée*
 
-3. Installez les dépendances :
+### Configuration
+![Configuration](docs/images/config_tab.png)
+*Paramètres de l'application*
+
+## 🚀 Installation
+
+1. Téléchargez la dernière version depuis la [page des releases](https://github.com/votre-username/GrabNWatch/releases)
+2. Exécutez le fichier `GrabNWatch.exe`
+3. C'est tout ! Aucune installation supplémentaire n'est nécessaire
+
+## 🛠️ Pour les développeurs
+
+### Prérequis
+- Python 3.8 ou supérieur
+- pip (gestionnaire de paquets Python)
+
+### Installation des dépendances
 ```bash
 pip install -r requirements.txt
 ```
