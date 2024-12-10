@@ -24,7 +24,7 @@ GrabNWatch est une application desktop qui permet de télécharger facilement de
 
 ## 🚀 Installation
 
-1. Téléchargez la dernière version depuis la [page des releases](https://github.com/votre-username/GrabNWatch/releases)
+1. Téléchargez la dernière version depuis la [page des releases](https://github.com/watpow/GrabNWatch/releases)
 2. Exécutez le fichier `GrabNWatch.exe`
 3. C'est tout ! Aucune installation supplémentaire n'est nécessaire
 
