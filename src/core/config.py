@@ -1,8 +1,21 @@
 import json
 import os
 import logging
+import platform
+from pathlib import Path
 
-CONFIG_FILE = "config.json"
+def get_config_dir():
+    """Retourne le répertoire de configuration selon le système d'exploitation"""
+    if platform.system() == "Windows":
+        config_dir = os.path.join(os.getenv('APPDATA'), 'GrabNWatch')
+    else:
+        config_dir = os.path.join(str(Path.home()), '.config', 'grabnwatch')
+    
+    # Créer le répertoire s'il n'existe pas
+    os.makedirs(config_dir, exist_ok=True)
+    return config_dir
+
+CONFIG_FILE = os.path.join(get_config_dir(), "config.json")
 
 def load_config():
     """Charger la configuration depuis le fichier"""
