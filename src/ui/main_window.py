@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 import markdown2
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,19 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("GrabNWatch")
+        
+        # Définir l'icône de la fenêtre
+        try:
+            # Essayer d'abord le chemin relatif normal
+            icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'icon.ico')
+            if not os.path.exists(icon_path):
+                # Si on est dans un environnement PyInstaller
+                if hasattr(sys, '_MEIPASS'):
+                    icon_path = os.path.join(sys._MEIPASS, 'src', 'assets', 'icon.ico')
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception as e:
+            logger.warning(f"Impossible de charger l'icône: {e}")
         
         # Charger la configuration
         self.config = load_config()
