@@ -58,6 +58,7 @@ def load_config():
         "bandwidth_limit": 0,
         "dark_mode": False,
         "download_dir": get_default_downloads_dir(),
+        "auto_check_updates": True,
         "stats": {
             "total_downloads": 0,
             "total_size": 0,

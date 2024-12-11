@@ -2,16 +2,20 @@ import os
 import logging
 from PyQt5.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QMessageBox,
-    QProgressDialog
+    QProgressDialog, QApplication, QMenuBar,
+    QMenu, QAction, QTextBrowser, QDialog,
+    QVBoxLayout, QDialogButtonBox
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
+import markdown2
 
 logger = logging.getLogger(__name__)
 
 from src.core.config import load_config, save_config
 from src.core.download import DownloadManager
 from src.core.m3u import M3UParser
+from src.core.updater import Updater
 
 from src.ui.download_tab import DownloadTab
 from src.ui.queue_tab import QueueTab
@@ -21,47 +25,93 @@ from src.ui.config_tab import ConfigTab
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.config = load_config()
-        self.m3u_url = self.config.get("m3u_url", "")
-        self.entries = []
-        self.vod_info = {}
-        self.download_manager = DownloadManager(self.config)
-        self.m3u_parser = M3UParser()
-        self.loading_dialog = None
-        self.loader_thread = None
-        
-        # Obtenir le chemin absolu de l'icône
-        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icon.ico")
-        
         self.setWindowTitle("GrabNWatch")
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
         
-        self.setGeometry(100, 100, 1000, 700)
-        
+        # Charger la configuration
+        self.config = load_config()
         self.dark_mode = self.config.get("dark_mode", False)
+        self.m3u_url = self.config.get("m3u_url", "")
+        
+        # Initialiser les attributs
+        self.progress_dialog = None
+        self._update_error_shown = False
+        self._update_available_shown = False
+        
+        # Initialiser le gestionnaire de téléchargements
+        self.download_manager = DownloadManager(self.config)
+        
+        # Créer la barre de menu
+        self.create_menu()
+        
+        # Initialiser l'interface principale
         self.init_ui()
-        self.try_load_m3u_content()
-        self.show_startup_message()
+        
+        # Initialiser le gestionnaire de mises à jour
+        self.init_updater()
+        
+        # Appliquer le thème
+        self.apply_theme()
+
+    def create_menu(self):
+        """Crée la barre de menu de l'application"""
+        self.menubar = self.menuBar()
+        
+        # Menu Aide
+        help_menu = self.menubar.addMenu("Aide")
+        
+        # Actions du menu Aide
+        check_updates_action = QAction("Vérifier les mises à jour", self)
+        check_updates_action.triggered.connect(self.check_updates_manually)
+        help_menu.addAction(check_updates_action)
+        
+        update_history_action = QAction("Historique des mises à jour", self)
+        update_history_action.triggered.connect(self.show_update_history)
+        help_menu.addAction(update_history_action)
+        
+        help_menu.addSeparator()
+        
+        auto_check_action = QAction("Vérification automatique", self)
+        auto_check_action.setCheckable(True)
+        auto_check_action.setChecked(self.config.get("auto_check_updates", True))
+        auto_check_action.triggered.connect(self.toggle_auto_check)
+        help_menu.addAction(auto_check_action)
+
+    def init_updater(self):
+        """Initialise le gestionnaire de mises à jour"""
+        self.updater = Updater()
+        self.updater.update_available.connect(self.on_update_available)
+        self.updater.update_progress.connect(self.on_update_progress)
+        self.updater.update_error.connect(self.on_update_error)
+        self.updater.update_success.connect(self.on_update_success)
+        self.updater.update_history_loaded.connect(self.on_update_history_loaded)
+        
+        # Créer la boîte de dialogue de progression
+        self.progress_dialog = None
+        
+        # Vérifier les mises à jour au démarrage si activé
+        if self.config.get("auto_check_updates", True):
+            self.updater.check_for_updates()
 
     def init_ui(self):
-        """Initialiser l'interface utilisateur"""
-        # Configuration des onglets
-        self.tabs = QTabWidget(self)
-        
+        """Initialise l'interface utilisateur principale"""
         # Créer les onglets
+        self.tabs = QTabWidget()
+        self.setCentralWidget(self.tabs)
+        
+        # Créer les différents onglets
         self.download_tab = DownloadTab(self)
+        self.config_tab = ConfigTab(self)
         self.queue_tab = QueueTab(self)
         self.stats_tab = StatsTab(self)
-        self.config_tab = ConfigTab(self)
         
         # Ajouter les onglets
         self.tabs.addTab(self.download_tab, "Téléchargement")
         self.tabs.addTab(self.queue_tab, "File d'attente")
-        self.tabs.addTab(self.stats_tab, "Statistiques")
         self.tabs.addTab(self.config_tab, "Configuration")
+        self.tabs.addTab(self.stats_tab, "Statistiques")
         
-        self.setCentralWidget(self.tabs)
+        # Définir une taille par défaut
+        self.setGeometry(100, 100, 800, 600)
 
     def try_load_m3u_content(self):
         """Tente de charger le contenu M3U si l'URL est valide"""
@@ -329,3 +379,176 @@ class MainWindow(QMainWindow):
             """)
         else:
             self.setStyleSheet("")  # Réinitialiser au thème par défaut
+
+    def on_update_available(self, version):
+        """Appelé quand une mise à jour est disponible"""
+        self._update_available_shown = True
+        reply = QMessageBox.question(
+            self,
+            "Mise à jour disponible",
+            f"Une nouvelle version ({version}) est disponible. Voulez-vous la télécharger et l'installer ?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            self.start_update_download()
+
+    def on_update_progress(self, progress):
+        """Met à jour la progression du téléchargement"""
+        if self.progress_dialog:
+            self.progress_dialog.setValue(progress)
+
+    def on_update_error(self, error):
+        """Appelé en cas d'erreur pendant la mise à jour"""
+        self._update_error_shown = True
+        if self.progress_dialog is not None:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+        QMessageBox.warning(self, "Erreur de mise à jour", error)
+
+    def on_update_success(self):
+        """Appelé quand la mise à jour est terminée avec succès"""
+        if self.progress_dialog:
+            self.progress_dialog.close()
+        QMessageBox.information(
+            self,
+            "Mise à jour terminée",
+            "La mise à jour a été installée avec succès. L'application va redémarrer."
+        )
+
+    def check_updates_manually(self):
+        """Vérification manuelle des mises à jour"""
+        # Réinitialiser les flags d'état
+        self._update_error_shown = False
+        self._update_available_shown = False
+        
+        # Créer une boîte de dialogue de progression avec bouton Annuler
+        self.progress_dialog = QProgressDialog(
+            "Recherche de mises à jour en cours...",
+            "Annuler",
+            0, 0,  # Min et Max à 0 pour une barre indéterminée
+            self
+        )
+        self.progress_dialog.setWindowTitle("Vérification des mises à jour")
+        self.progress_dialog.setWindowModality(Qt.WindowModal)
+        self.progress_dialog.setMinimumDuration(500)  # Délai minimum avant affichage
+        self.progress_dialog.canceled.connect(self.cancel_update_check)
+        
+        # Connecter les signaux de l'updater
+        self.updater.check_finished.connect(self.on_check_finished)
+        
+        # Démarrer la vérification
+        self.updater.check_for_updates()
+        
+        # Afficher la boîte de dialogue
+        self.progress_dialog.exec_()
+
+    def cancel_update_check(self):
+        """Annule la vérification des mises à jour"""
+        if hasattr(self, 'updater') and self.updater._checker_thread:
+            self.updater._checker_thread.stop()
+            self.updater._checker_thread.wait()
+        self.cleanup_update_check()
+
+    def on_check_finished(self):
+        """Appelé quand la vérification est terminée"""
+        # Nettoyer les connexions et la boîte de dialogue
+        self.cleanup_update_check()
+        
+        # Si aucune mise à jour n'a été trouvée et aucune erreur n'a été affichée
+        if not self._update_error_shown and not self._update_available_shown:
+            QMessageBox.information(
+                self,
+                "Mise à jour",
+                "Vous utilisez déjà la dernière version du programme."
+            )
+
+    def cleanup_update_check(self):
+        """Nettoie les ressources de la vérification des mises à jour"""
+        if self.progress_dialog is not None:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+        
+        try:
+            # Déconnecter les signaux s'ils sont connectés
+            self.updater.check_finished.disconnect(self.on_check_finished)
+        except:
+            pass  # Ignorer si le signal n'était pas connecté
+
+    def toggle_auto_check(self, checked):
+        """Active/désactive la vérification automatique des mises à jour"""
+        self.config["auto_check_updates"] = checked
+        save_config(self.config)
+
+    def show_update_history(self):
+        """Affiche l'historique des mises à jour"""
+        self.updater.load_update_history()
+
+    def on_update_history_loaded(self, history):
+        """Affiche l'historique des mises à jour dans une boîte de dialogue scrollable"""
+        if not history:
+            QMessageBox.information(
+                self,
+                "Historique des mises à jour",
+                "Aucun historique de mise à jour disponible."
+            )
+            return
+
+        # Créer une boîte de dialogue personnalisée
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Historique des mises à jour")
+        dialog.setMinimumWidth(500)
+        dialog.setMinimumHeight(400)
+        
+        # Créer la disposition
+        layout = QVBoxLayout()
+        
+        # Créer un widget de texte riche avec ascenseur
+        text_browser = QTextBrowser()
+        text_browser.setOpenExternalLinks(True)
+        
+        # Préparer le contenu en HTML
+        history_text = "# Historique des mises à jour\n\n"
+        for version, changes in history:
+            history_text += f"## Version {version}\n"
+            for change in changes:
+                history_text += f"- {change}\n"
+            history_text += "\n"
+        
+        # Convertir le markdown en HTML
+        html_content = markdown2.markdown(history_text)
+        text_browser.setHtml(html_content)
+        
+        # Ajouter le widget de texte à la disposition
+        layout.addWidget(text_browser)
+        
+        # Ajouter un bouton Fermer
+        button_box = QDialogButtonBox(QDialogButtonBox.Close)
+        button_box.rejected.connect(dialog.close)
+        layout.addWidget(button_box)
+        
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+    def start_update_download(self):
+        """Démarre le téléchargement de la mise à jour"""
+        self.progress_dialog = QProgressDialog(
+            "Téléchargement de la mise à jour...",
+            "Annuler",
+            0, 100,
+            self
+        )
+        self.progress_dialog.setWindowModality(Qt.WindowModal)
+        self.progress_dialog.setAutoClose(False)
+        self.progress_dialog.canceled.connect(self.cancel_update_download)
+        self.progress_dialog.show()
+        
+        # Lancer le téléchargement
+        self.updater.download_and_install_update()
+
+    def cancel_update_download(self):
+        """Annule le téléchargement de la mise à jour"""
+        # TODO: Implémenter l'annulation du téléchargement
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+            delattr(self, 'progress_dialog')
