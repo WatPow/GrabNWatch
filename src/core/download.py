@@ -2,18 +2,19 @@ import os
 import time
 import requests
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, QWaitCondition, QMutex, QMutexLocker
-from src.core.config import save_config
+from src.core.config import save_config, get_default_downloads_dir
 
 class DownloadThread(QThread):
     progress = pyqtSignal(int)
     finished = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(self, name, url, bandwidth_limit=None):
+    def __init__(self, name, url, bandwidth_limit=None, config=None):
         super().__init__()
         self.name = name
         self.url = url
         self.bandwidth_limit = bandwidth_limit
+        self.config = config or {}
         self.stop_flag = False
         self.paused = False
         self.pause_condition = QWaitCondition()
@@ -38,11 +39,10 @@ class DownloadThread(QThread):
             if self.total_size == 0:
                 raise Exception("Impossible de déterminer la taille du fichier")
             
-            # Créer le dossier de téléchargement s'il n'existe pas
-            os.makedirs("downloads", exist_ok=True)
-            
-            # Préparer le nom du fichier avec extension .mp4
-            filename = os.path.join("downloads", f"{self.name}.mp4")
+            # Utiliser le dossier configuré ou le dossier par défaut du système
+            download_dir = self.config.get("download_dir", get_default_downloads_dir())
+            os.makedirs(download_dir, exist_ok=True)
+            filename = os.path.join(download_dir, f"{self.name}.mp4")
             
             # Ouvrir le fichier en mode binaire
             with open(filename, 'wb') as f:
@@ -137,7 +137,7 @@ class DownloadManager(QObject):
             self.download_queue.pop(0)
 
     def start_download(self, name, url, bandwidth_limit=None):
-        self.current_download = DownloadThread(name, url, bandwidth_limit)
+        self.current_download = DownloadThread(name, url, bandwidth_limit, self.config)
         self.current_download.progress.connect(lambda p: self.download_progress.emit(name, p))
         self.current_download.finished.connect(lambda: self.on_download_finished(name))
         self.current_download.error.connect(lambda e: self.on_download_error(name, e))

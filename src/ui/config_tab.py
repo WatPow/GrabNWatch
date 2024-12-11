@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QSpinBox,
-    QCheckBox, QGroupBox, QMessageBox
+    QCheckBox, QGroupBox, QMessageBox, QFileDialog
 )
-from src.core.config import save_config
+from src.core.config import save_config, validate_download_dir
 
 class ConfigTab(QWidget):
     def __init__(self, parent=None):
@@ -39,6 +39,19 @@ class ConfigTab(QWidget):
         download_layout.addWidget(self.bandwidth_label, 0, 0)
         download_layout.addWidget(self.bandwidth_spin, 0, 1)
         
+        # Ajout du sélecteur de dossier de téléchargement
+        self.download_dir_label = QLabel("Dossier de téléchargement:")
+        self.download_dir_edit = QLineEdit(self.parent.config.get("download_dir", ""))
+        self.download_dir_edit.setReadOnly(True)
+        self.download_dir_button = QPushButton("Choisir...")
+        
+        download_dir_layout = QHBoxLayout()
+        download_dir_layout.addWidget(self.download_dir_edit)
+        download_dir_layout.addWidget(self.download_dir_button)
+        
+        download_layout.addWidget(self.download_dir_label, 1, 0)
+        download_layout.addLayout(download_dir_layout, 1, 1)
+        
         download_group.setLayout(download_layout)
         
         # Configuration du thème
@@ -61,6 +74,7 @@ class ConfigTab(QWidget):
         self.m3u_button.clicked.connect(self.save_m3u_url)
         self.bandwidth_spin.valueChanged.connect(self.save_config)
         self.theme_check.stateChanged.connect(self.toggle_theme)
+        self.download_dir_button.clicked.connect(self.choose_download_dir)
 
     def save_m3u_url(self):
         """Sauvegarder l'URL M3U"""
@@ -82,3 +96,32 @@ class ConfigTab(QWidget):
         self.parent.config["dark_mode"] = self.parent.dark_mode
         self.save_config()
         self.parent.apply_theme()
+
+    def choose_download_dir(self):
+        """Ouvrir le sélecteur de dossier pour choisir le dossier de téléchargement"""
+        current_dir = self.parent.config.get("download_dir", "")
+        new_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Choisir le dossier de téléchargement",
+            current_dir,
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+        )
+        
+        if new_dir:
+            # Valider le dossier choisi
+            is_valid, result = validate_download_dir(new_dir)
+            if is_valid:
+                self.download_dir_edit.setText(result)
+                self.parent.config["download_dir"] = result
+                self.save_config()
+                QMessageBox.information(
+                    self,
+                    "Dossier mis à jour",
+                    f"Le dossier de téléchargement a été changé pour:\n{result}"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Erreur",
+                    f"Le dossier sélectionné n'est pas valide:\n{result}"
+                )
