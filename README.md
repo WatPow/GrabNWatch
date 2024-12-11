@@ -1,14 +1,14 @@
 # GrabNWatch 📺
 
-GrabNWatch est une application desktop qui permet de télécharger facilement des vidéos depuis diverses plateformes et de les organiser dans des playlists M3U.
+GrabNWatch est une application de bureau qui permet de télécharger des vidéos à partir d'une URL au format .m3u (M3U Plus - MPEGTS).
 
 ![Interface principale](docs/images/main_interface.png)
 
 ## ✨ Fonctionnalités
 
-- 🎥 Téléchargement de vidéos depuis plusieurs plateformes
+- 🎥 Téléchargement de vidéos depuis une URL m3u
 - 📋 Gestion intégrée de la file d'attente
-- 📝 Création automatique de playlists M3U
+- 📝 Connexion automatique à la playlist m3u
 - ⚙️ Configuration personnalisable
 - 📊 Statistiques de téléchargement
 - 📂 Choix du dossier de destination pour les téléchargements
@@ -95,7 +95,7 @@ GrabNWatch/
 
 ## Configuration
 
-La configuration est sauvegardée dans `config.json` et comprend :
+La configuration est sauvegardée dans `config.json` situé dans le dossier `AppData` et comprend :
 - URL de la playlist M3U
 - Limite de bande passante (KB/s, 0 = illimité)
 - Mode sombre
