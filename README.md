@@ -11,6 +11,8 @@ GrabNWatch est une application desktop qui permet de télécharger facilement de
 - 📝 Création automatique de playlists M3U
 - ⚙️ Configuration personnalisable
 - 📊 Statistiques de téléchargement
+- 📂 Choix du dossier de destination pour les téléchargements
+- 🔄 Vérification des mises à jour directement depuis l'application
 
 ## 📸 Captures d'écran
 
