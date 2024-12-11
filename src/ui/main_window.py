@@ -36,9 +36,13 @@ class MainWindow(QMainWindow):
         self.progress_dialog = None
         self._update_error_shown = False
         self._update_available_shown = False
+        self.loader_thread = None
+        self.entries = []
+        self.vod_info = {}
         
-        # Initialiser le gestionnaire de téléchargements
+        # Initialiser les composants
         self.download_manager = DownloadManager(self.config)
+        self.m3u_parser = M3UParser()
         
         # Créer la barre de menu
         self.create_menu()
@@ -51,6 +55,10 @@ class MainWindow(QMainWindow):
         
         # Appliquer le thème
         self.apply_theme()
+
+        # Charger le contenu M3U et afficher le message de démarrage
+        self.try_load_m3u_content()
+        self.show_startup_message()
 
     def create_menu(self):
         """Crée la barre de menu de l'application"""
@@ -207,25 +215,34 @@ class MainWindow(QMainWindow):
         )
 
     def closeEvent(self, event):
-        """Gérer la fermeture propre de l'application"""
+        """Gestionnaire d'événement de fermeture de la fenêtre"""
         try:
-            # Arrêter le thread de chargement M3U s'il est en cours
+            # Arrêter le thread de chargement s'il existe
             if self.loader_thread is not None:
-                logger.debug("Arrêt du thread de chargement M3U")
-                self.loader_thread.stop()
+                self.loader_thread.quit()
                 self.loader_thread.wait()
-                self.loader_thread.deleteLater()
-                self.loader_thread = None
+
+            # Arrêter le thread de vérification des mises à jour s'il existe
+            if hasattr(self, 'updater') and self.updater._checker_thread:
+                self.updater._checker_thread.stop()
+                self.updater._checker_thread.wait()
 
             # Arrêter les téléchargements en cours
             if hasattr(self, 'download_manager'):
                 if self.download_manager.current_download:
                     self.download_manager.current_download.stop()
                     self.download_manager.current_download.wait()
-        except Exception as e:
-            logger.error(f"Erreur lors de la fermeture: {str(e)}", exc_info=True)
-        finally:
+
+            # Sauvegarder la configuration
+            save_config(self.config)
+            
+            # Accepter l'événement de fermeture
             event.accept()
+            
+        except Exception as e:
+            # Logger l'erreur mais permettre la fermeture quand même
+            logging.error(f"Erreur lors de la fermeture: {str(e)}")
+            event.accept()  # Accepter la fermeture même en cas d'erreur
 
     def apply_theme(self):
         """Appliquer le thème (clair ou sombre)"""
