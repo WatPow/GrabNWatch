@@ -5,7 +5,7 @@ from PyQt5.QtCore import QThread, QObject, pyqtSignal, QWaitCondition, QMutex, Q
 from src.core.config import save_config, get_default_downloads_dir
 
 class DownloadThread(QThread):
-    progress = pyqtSignal(int)
+    progress = pyqtSignal(str, int, float)  # name, progress, speed in KB/s
     finished = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -27,6 +27,8 @@ class DownloadThread(QThread):
         self.download_time = 0
         self.current_speed = 0
         self.speeds = []  # Liste des vitesses pour calculer la moyenne
+        self.bytes_since_last_update = 0
+        self.last_update_time = time.time()
 
     def run(self):
         try:
@@ -48,7 +50,8 @@ class DownloadThread(QThread):
             with open(filename, 'wb') as f:
                 self.downloaded_size = 0
                 chunk_size = 8192  # 8KB par chunk
-                last_update_time = time.time()
+                self.last_update_time = time.time()
+                self.bytes_since_last_update = 0
                 
                 for chunk in response.iter_content(chunk_size=chunk_size):
                     # Vérifier si l'arrêt a été demandé
@@ -63,26 +66,28 @@ class DownloadThread(QThread):
                     if chunk:
                         f.write(chunk)
                         self.downloaded_size += len(chunk)
+                        self.bytes_since_last_update += len(chunk)
                         
                         # Calculer la vitesse toutes les 0.5 secondes
                         current_time = time.time()
-                        if current_time - last_update_time >= 0.5:
-                            elapsed = current_time - last_update_time
-                            speed = len(chunk) / elapsed
+                        if current_time - self.last_update_time >= 0.5:
+                            elapsed = current_time - self.last_update_time
+                            speed = self.bytes_since_last_update / elapsed  # Octets par seconde
                             self.speeds.append(speed)
-                            # Garder seulement les 10 dernières mesures
-                            if len(self.speeds) > 10:
+                            # Garder seulement les 5 dernières mesures
+                            if len(self.speeds) > 5:
                                 self.speeds.pop(0)
                             self.current_speed = sum(self.speeds) / len(self.speeds)
-                            last_update_time = current_time
+                            self.last_update_time = current_time
+                            self.bytes_since_last_update = 0
                         
                         # Limiter la bande passante si nécessaire
                         if self.bandwidth_limit:
                             time.sleep(len(chunk) / (self.bandwidth_limit * 1024))
                         
-                        # Émettre la progression
+                        # Émettre la progression avec la vitesse (convertie en KB/s)
                         progress = int(self.downloaded_size * 100 / self.total_size)
-                        self.progress.emit(progress)
+                        self.progress.emit(self.name, progress, self.current_speed / 1024)
             
             self.download_time = time.time() - self.start_time
             self.finished.emit()
@@ -104,7 +109,7 @@ class DownloadThread(QThread):
 
 
 class DownloadManager(QObject):
-    download_progress = pyqtSignal(str, int)
+    download_progress = pyqtSignal(str, int, float)  # name, progress, speed
     download_finished = pyqtSignal(str)
     download_error = pyqtSignal(str, str)
     queue_updated = pyqtSignal()
@@ -138,7 +143,9 @@ class DownloadManager(QObject):
 
     def start_download(self, name, url, bandwidth_limit=None):
         self.current_download = DownloadThread(name, url, bandwidth_limit, self.config)
-        self.current_download.progress.connect(lambda p: self.download_progress.emit(name, p))
+        self.current_download.progress.connect(
+            lambda n, p, s: self.download_progress.emit(n, p, s)
+        )
         self.current_download.finished.connect(lambda: self.on_download_finished(name))
         self.current_download.error.connect(lambda e: self.on_download_error(name, e))
         self.current_download.start()
@@ -190,6 +197,9 @@ class DownloadManager(QObject):
         # Si c'est le téléchargement en cours
         if self.current_download and self.current_download.name == name:
             self.current_download.stop()
+            # Attendre que le thread soit terminé
+            self.current_download.wait()
+            # Maintenant on peut supprimer le thread en toute sécurité
             self.current_download.deleteLater()
             self.current_download = None
             self.download_history = [(n, s, t) for n, s, t in self.download_history if n != name]

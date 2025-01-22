@@ -117,11 +117,15 @@ class QueueTab(QWidget):
         # Mettre à jour l'état des boutons
         self.update_buttons_state()
 
-    def update_download_progress(self, name, progress):
+    def update_download_progress(self, name, progress, speed):
         """Mettre à jour la progression du téléchargement"""
         items = self.active_list.findItems(f"{name}", Qt.MatchStartsWith)
         if items:
-            items[0].setText(f"{name} - {progress}%")
+            # Formater la vitesse avec 2 décimales
+            speed_text = f"{speed:.2f} Ko/s"
+            # Garder le même format que précédemment pour la compatibilité
+            status = "En pause" if hasattr(self.parent.download_manager.current_download, 'paused') and self.parent.download_manager.current_download.paused else f"{progress}% - {speed_text}"
+            items[0].setText(f"{name} - {status}")
 
     def on_download_finished(self, name):
         """Gérer la fin d'un téléchargement"""
@@ -142,34 +146,25 @@ class QueueTab(QWidget):
         """Annuler le téléchargement sélectionné"""
         selected_item = self.active_list.currentItem()
         if selected_item:
-            # Récupérer le nom complet jusqu'au statut
+            # Récupérer juste le nom (première partie avant le premier " - ")
             full_text = selected_item.text()
-            # Trouver le dernier " - " pour séparer le nom du statut
-            last_separator_index = full_text.rfind(" - ")
-            if last_separator_index != -1:
-                name = full_text[:last_separator_index]
-                self.parent.download_manager.cancel_download(name)
+            name = full_text.split(" - ")[0]
+            self.parent.download_manager.cancel_download(name)
 
     def pause_selected_download(self):
         """Mettre en pause le téléchargement sélectionné"""
         selected_item = self.active_list.currentItem()
         if selected_item:
-            # Récupérer le nom complet jusqu'au statut
+            # Récupérer juste le nom (première partie avant le premier " - ")
             full_text = selected_item.text()
-            # Trouver le dernier " - " pour séparer le nom du statut
-            last_separator_index = full_text.rfind(" - ")
-            if last_separator_index != -1:
-                name = full_text[:last_separator_index]
-                self.parent.download_manager.pause_download(name)
+            name = full_text.split(" - ")[0]
+            self.parent.download_manager.pause_download(name)
 
     def resume_selected_download(self):
         """Reprendre le téléchargement sélectionné"""
         selected_item = self.active_list.currentItem()
         if selected_item:
-            # Récupérer le nom complet jusqu'au statut
+            # Récupérer juste le nom (première partie avant le premier " - ")
             full_text = selected_item.text()
-            # Trouver le dernier " - " pour séparer le nom du statut
-            last_separator_index = full_text.rfind(" - ")
-            if last_separator_index != -1:
-                name = full_text[:last_separator_index]
-                self.parent.download_manager.resume_download(name) 
+            name = full_text.split(" - ")[0]
+            self.parent.download_manager.resume_download(name) 
