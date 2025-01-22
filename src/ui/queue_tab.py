@@ -89,13 +89,34 @@ class QueueTab(QWidget):
             self.resume_button.setEnabled(False)
             self.cancel_button.setEnabled(False)
 
+    def format_size(self, size_in_bytes):
+        """Formater la taille en format lisible"""
+        for unit in ['o', 'Ko', 'Mo', 'Go']:
+            if size_in_bytes < 1024.0:
+                return f"{size_in_bytes:.2f} {unit}"
+            size_in_bytes /= 1024.0
+        return f"{size_in_bytes:.2f} To"
+
+    def update_download_progress(self, name, progress, speed):
+        """Mettre à jour la progression du téléchargement"""
+        items = self.active_list.findItems(f"{name}", Qt.MatchStartsWith)
+        if items and self.parent.download_manager.current_download:
+            # Formater la vitesse avec 2 décimales
+            speed_text = f"{speed:.2f} Ko/s"
+            # Formater la taille totale
+            total_size = self.format_size(self.parent.download_manager.current_download.total_size)
+            # Garder le même format que précédemment pour la compatibilité
+            status = "En pause" if hasattr(self.parent.download_manager.current_download, 'paused') and self.parent.download_manager.current_download.paused else f"{progress}% - {speed_text} - {total_size}"
+            items[0].setText(f"{name} - {status}")
+
     def update_queue_display(self):
         """Mettre à jour l'affichage de la file d'attente"""
         # Mise à jour du téléchargement actif
         self.active_list.clear()
         if self.parent.download_manager.current_download:
             name = self.parent.download_manager.current_download.name
-            status = "En pause" if hasattr(self.parent.download_manager.current_download, 'paused') and self.parent.download_manager.current_download.paused else "En cours"
+            total_size = self.format_size(self.parent.download_manager.current_download.total_size)
+            status = f"En pause - {total_size}" if hasattr(self.parent.download_manager.current_download, 'paused') and self.parent.download_manager.current_download.paused else f"En cours - {total_size}"
             self.active_list.addItem(f"{name} - {status}")
         
         # Mise à jour de la file d'attente
@@ -110,22 +131,17 @@ class QueueTab(QWidget):
             key=lambda x: x[2],
             reverse=True
         ):
+            # Si le statut contient déjà la taille (pour les téléchargements terminés), on le garde tel quel
+            if " - " in status and any(unit in status for unit in ['o', 'Ko', 'Mo', 'Go', 'To']):
+                display_status = status
+            else:
+                display_status = status
             self.history_list.addItem(
-                f"{name} - {status} - {time.strftime('%H:%M:%S', time.localtime(timestamp))}"
+                f"{name} - {display_status} - {time.strftime('%H:%M:%S', time.localtime(timestamp))}"
             )
         
         # Mettre à jour l'état des boutons
         self.update_buttons_state()
-
-    def update_download_progress(self, name, progress, speed):
-        """Mettre à jour la progression du téléchargement"""
-        items = self.active_list.findItems(f"{name}", Qt.MatchStartsWith)
-        if items:
-            # Formater la vitesse avec 2 décimales
-            speed_text = f"{speed:.2f} Ko/s"
-            # Garder le même format que précédemment pour la compatibilité
-            status = "En pause" if hasattr(self.parent.download_manager.current_download, 'paused') and self.parent.download_manager.current_download.paused else f"{progress}% - {speed_text}"
-            items[0].setText(f"{name} - {status}")
 
     def on_download_finished(self, name):
         """Gérer la fin d'un téléchargement"""

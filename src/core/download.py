@@ -153,7 +153,16 @@ class DownloadManager(QObject):
         self.download_history.append((name, "En cours", time.time()))
         self.queue_updated.emit()
 
+    def format_size(self, size_in_bytes):
+        """Formater la taille en format lisible"""
+        for unit in ['o', 'Ko', 'Mo', 'Go']:
+            if size_in_bytes < 1024.0:
+                return f"{size_in_bytes:.2f} {unit}"
+            size_in_bytes /= 1024.0
+        return f"{size_in_bytes:.2f} To"
+
     def on_download_finished(self, name):
+        """Appelé quand un téléchargement est terminé"""
         if self.current_download:
             # Mise à jour des statistiques
             self.stats['total_downloads'] += 1
@@ -163,16 +172,21 @@ class DownloadManager(QObject):
                 self.stats['download_times'].append(speed)
                 self.stats['average_speed'] = sum(self.stats['download_times']) / len(self.stats['download_times'])
             
+            # Formater la taille totale pour l'historique
+            total_size = self.format_size(self.current_download.total_size)
+            
             # Sauvegarder les statistiques dans la configuration
             self.config['stats'] = self.stats
             save_config(self.config)
-
+            
+            # Nettoyer le thread de téléchargement
             self.current_download.deleteLater()
             self.current_download = None
+            
+            # Mettre à jour l'historique avec la taille
             self.download_history = [(n, s, t) for n, s, t in self.download_history if n != name]
-            self.download_history.append((name, "Terminé", time.time()))
+            self.download_history.append((name, f"Terminé - {total_size}", time.time()))
             self.download_finished.emit(name)
-            self.queue_updated.emit()
             
             # Démarrer automatiquement le prochain téléchargement
             if self.download_queue:
