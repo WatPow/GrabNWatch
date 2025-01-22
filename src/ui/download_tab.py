@@ -130,8 +130,6 @@ class DownloadTab(QWidget):
             details = []
             if info.get('group_title'):
                 details.append(f"Catégorie: {info['group_title']}")
-            if info.get('tvg_logo'):
-                details.append(f"Logo: {info['tvg_logo']}")
             if info.get('xui_id'):
                 details.append(f"ID: {info['xui_id']}")
             
