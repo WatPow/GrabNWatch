@@ -46,10 +46,10 @@ class DownloadThread(QThread):
             os.makedirs(download_dir, exist_ok=True)
             filename = os.path.join(download_dir, f"{self.name}.mp4")
             
-            # Ouvrir le fichier en mode binaire
-            with open(filename, 'wb') as f:
+            # Ouvrir le fichier en mode binaire avec buffer optimisé
+            with open(filename, 'wb', buffering=1024*1024) as f:  # Buffer de 1MB
                 self.downloaded_size = 0
-                chunk_size = 8192  # 8KB par chunk
+                chunk_size = 1024*1024  # 1MB par chunk pour de meilleures performances
                 self.last_update_time = time.time()
                 self.bytes_since_last_update = 0
                 
@@ -74,8 +74,8 @@ class DownloadThread(QThread):
                             elapsed = current_time - self.last_update_time
                             speed = self.bytes_since_last_update / elapsed  # Octets par seconde
                             self.speeds.append(speed)
-                            # Garder seulement les 5 dernières mesures
-                            if len(self.speeds) > 5:
+                            # Garder seulement les 3 dernières mesures pour une moyenne plus réactive
+                            if len(self.speeds) > 3:
                                 self.speeds.pop(0)
                             self.current_speed = sum(self.speeds) / len(self.speeds)
                             self.last_update_time = current_time
